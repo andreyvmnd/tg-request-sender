@@ -8,8 +8,10 @@ class request:
             response = c.post(
                     headers={"Authorization": f'Bearer {key}'},
                     url=url,
+                    files=files,
+                    json=json,
                     allow_redirects=False
                 )
             self.response = response
         except Exception as e:
-            self.error = f"Exception: {e}\n"
+            self.error = f"Exception: {e}"
