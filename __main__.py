@@ -4,7 +4,7 @@ import os
 import requests
 import db
 import logging
-import request
+from request import *
 
 from aiogram import Bot, Dispatcher, types, executor
 
@@ -305,13 +305,11 @@ async def test_server(arguments, message: types.Message):
     it = 1
     _string = ""
     for item in ips:
-        self_req = request(config.ACCESS_TOKEN, f"http://{item[0]}:5000/bots/isonline")
-        if self_req.response:
-            _string += f"{it}. {item[0]}: Server online"
-        elif self_req.error:
+        self_req = request(config.ACCESS_TOKEN, f"http://{item[0]}:5000/")
+        if self_req.error:
             _string += f"{it}. {item[0]}: {self_req.error}"
         else:
-            _string += f"{it} else"
+            _string += f"{it}. {item[0]}: Server online"
         it += 1
     
     _string = [_string[x:x+4096] for x in range (0, len(_string), 4096)]
