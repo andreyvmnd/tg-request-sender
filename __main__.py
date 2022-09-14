@@ -1,10 +1,10 @@
 import asyncio
 import config
-import threading
-import json
+import os
 import requests
 import db
 import logging
+import request
 
 from aiogram import Bot, Dispatcher, types, executor
 
@@ -267,6 +267,7 @@ async def stopallbot(arguments, message: types.Message):
                     url=f"http://{item[0]}:5000/bots/stopallbot",
                     allow_redirects=False
                 )
+            
             if response.ok:
                 log_info(f"{message.chat.username} - stopallbot IP:{item[0]} Status:Success")
                 _string += f"{message.chat.username} - stopallbot IP:{item[0]} Status:Success"
@@ -286,12 +287,7 @@ async def update(arguments, message: types.Message):
     _string = ""
     for item in ips:
         try:
-            c = requests.Session()
-            response = c.post(
-                    headers={"Authorization": f'Bearer {config.ACCESS_TOKEN}'},
-                    url=f"http://{item[0]}:5000/bots/update/{update_n}",
-                    allow_redirects=False
-                )
+            response = request(config.ACCESS_TOKEN, f"http://{item[0]}:5000/bots/update/{update_n}")
             if response.ok:
                 log_info(f"{message.chat.username} - {message.text} IP:{item[0]} Resp:{response} Status:Success")
                 _string += f"{message.chat.username} - {message.text} IP:{item[0]} Status:Success"
@@ -303,22 +299,19 @@ async def update(arguments, message: types.Message):
     _string = [_string[x:x+4096] for x in range (0, len(_string), 4096)]
     for string in _string:
         await bot.send_message(message.chat.id, string)
-            
+
 async def test_server(arguments, message: types.Message):
     ips = db.get_ips()
     it = 1
     _string = ""
     for item in ips:
-        try:
-            c = requests.Session()
-            response = c.post(
-                    headers={"Authorization": f'Bearer {config.ACCESS_TOKEN}'},
-                    url=f"http://{item[0]}:5000/bots/isonline",
-                    allow_redirects=False
-                )
-            _string += f"Test: {it}. {item[0]}: {response}\n"
-        except Exception as e:
-            _string += f"Exception: {e}\n"
+        self_req = request(config.ACCESS_TOKEN, f"http://{item[0]}:5000/bots/isonline")
+        if self_req.response:
+            _string += f"{it}. {item[0]}: Server online"
+        elif self_req.error:
+            _string += f"{it}. {item[0]}: {self_req.error}"
+        else:
+            _string += f"{it} else"
         it += 1
     
     _string = [_string[x:x+4096] for x in range (0, len(_string), 4096)]
@@ -326,6 +319,10 @@ async def test_server(arguments, message: types.Message):
         await bot.send_message(message.chat.id, string)
 
 def main():
+    for dir in ["logs", "docs"]:
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+
     global cmds
     global commandInfo
 
