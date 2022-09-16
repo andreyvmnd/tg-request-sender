@@ -28,10 +28,6 @@ class Commands:
         """Добавить команду"""
         self.funcs[len(self.funcs)] = [name, count_args, messages, callback, description]
 
-    def get_commands(self):
-        """Извлечь все команды"""
-        return self.funcs
-
     def set_function(self, chat, name):
         """Установить текущую команду"""
         chat.update({"function_name": name})
@@ -72,7 +68,7 @@ class Commands:
             
             cmd_info = self.get_command_info(function_name)
 
-            arguments.append(message.text)
+            arguments.append(message.text or message.document)
 
             arg_number += 1
 
