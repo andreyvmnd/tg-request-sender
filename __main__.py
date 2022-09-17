@@ -48,22 +48,6 @@ async def message_handler(message: types.Message):
         return
 
     await cmds.message_handler(message)
-        
-async def sendfile(arguments, message: types.Message):
-    await arguments[0].download(destination_file=f"docs/{arguments[0].file_name}")
-
-    ips = db.get_ips()
-    _string = ""
-    for i, item in enumerate(ips):
-
-        self_req = request(config.ACCESS_TOKEN, f"http://{item[0]}:5000/bots/sendfile", files= {'file': (arguments[0].file_name, open(f"docs/{arguments[0].file_name}", 'rb'))})
-                
-        server_message = self_req.error and "Server offline or down" or f"[{message.chat.username}] sendfile; file:{arguments[0].file_name} response:{self_req.response}"
-
-        _string += log_info(f"{i}. {item[0]}: {server_message}\n")
-    
-    for string in [_string[x:x+4096] for x in range (0, len(_string), 4096)]:
-        await message.answer(string)
 
 def get_ip_list_forall():
     ips, ipl = db.get_ips(), {}
@@ -77,30 +61,64 @@ def get_ip_list_forall():
 async def get_ip_list(arguments, message: types.Message):
     ips, ipl = get_ip_list_forall()
     for obj in ipl:
-        await message.answer(obj == 0 and f"Список IP (копируется нажатием):\n\n{ipl[obj]}" or f"{ipl[obj]}", 'HTML')
+        await message.answer(f"Список IP (копируется нажатием):\n\n{ipl[obj]}" if obj == 0 else f"{ipl[obj]}", 'HTML')
 
 async def add_ip_list(arguments, message: types.Message):
     db.add_ip(arguments[0])
-    _string = log_info(f"{arguments[0]}: [{message.chat.username}] addip")
+    _string = log_info(f"[{message.chat.username}] {arguments[0]}: addip")
     await message.answer(_string)
 
 async def remove_ip_list(arguments, message: types.Message):
     db.remove_ip(arguments[0])
-    _string = log_info(f"{arguments[0]}: [{message.chat.username}] removeip")
+    _string = log_info(f"[{message.chat.username}] {arguments[0]}: removeip")
     await message.answer(_string)
+
+async def sendfile(arguments, message: types.Message):
+    await arguments[0].download(destination_file=f"docs/{arguments[0].file_name}")
+
+    ips = db.get_ips()
+    _string = ""
+    for i, item in enumerate(ips, 1):
+
+        self_req = request(config.ACCESS_TOKEN, f"http://{item[0]}:5000/bots/sendfile", files={'file': (arguments[0].file_name, open(f"docs/{arguments[0].file_name}", 'rb'))})
+                
+        server_message = "Server offline or down" if self_req.isoffline else (self_req.error['msg'] if self_req.error else f"sendfile; file: {arguments[0].file_name} response: {self_req.response.json()['msg']}")
+
+        _string += log_info(f"{i}. [{message.chat.username}] {item[0]}: {server_message}\n")
+    
+    for string in [_string[x:x+4096] for x in range (0, len(_string), 4096)]:
+        await message.answer(string)
 
 async def restartconsole(arguments, message: types.Message):
     ips, ipl = get_ip_list_forall()
     _string = ""
     for i, item in enumerate(ips, 1):
         if arguments[0] == "all" or arguments[0] == item[0]:
-            self_req = request(config.ACCESS_TOKEN, f"http://{item[0]}:5000/bots/restartconsole")
-            
-            server_message = self_req.error and f"[{message.chat.username}] restartconsole" or f"[{message.chat.username}] restartconsole; response:{self_req.response.json()}"
+            isonline = False if request(config.ACCESS_TOKEN, f"http://{item[0]}:5000/bots/isonline").isoffline else True
 
-            _string += log_info(f"{i}. {item[0]}: {server_message}\n")
+            if isonline:
+                self_req = request(config.ACCESS_TOKEN, f"http://{item[0]}:5000/bots/restartconsole")
+                
+                server_message = f"restartconsole; response: SUCCESS" if self_req.isoffline else f"restartconsole; Response: {self_req.error['msg']}"
+                _string += log_info(f"{i}. [{message.chat.username}] {item[0]}: {server_message}\n")
+            else:
+                server_message = f"restartconsole; ERROR: Server is offline"
+                _string += log_info(f"{i}. [{message.chat.username}] {item[0]}: {server_message}\n")
+
 
     for string in [_string[x:x+4096] for x in range (0, len(_string), 4096)]:
+        await message.answer(string)
+    
+async def stopallbot(arguments, message: types.Message):
+    ips = db.get_ips()
+    _string = ""
+    for it, item in enumerate(ips, 1):
+        self_req = request(config.ACCESS_TOKEN, f"http://{item[0]}:5000/bots/stopallbot")
+
+        server_message = "Server offline or down" if self_req.isoffline else f"stopallbot; response: {self_req.response.json()['msg']}"
+        _string += log_info(f"{it}. [{message.chat.username}] {item[0]}: {server_message}\n")
+        
+    for string in [_string[x:x+4096] for x in range(0, len(_string), 4096)]:
         await message.answer(string)
 
 async def killallrbx(arguments, message: types.Message):
@@ -110,42 +128,11 @@ async def killallrbx(arguments, message: types.Message):
         if arguments[0] == "all" or arguments[0] == item[0]:
             self_req = request(config.ACCESS_TOKEN, f"http://{item[0]}:5000/bots/killallrbx")
 
-            server_message = self_req.error and "Server offline or down" or f"[{message.chat.username}] killallrbx; response:{self_req.response}"
+            server_message = "Server offline or down" if self_req.isoffline else f"killallrbx; response: {self_req.response.json()['msg']}"
 
-            _string += log_info(f"{i}. {item[0]}: {server_message}\n")
+            _string += log_info(f"{i}. [{message.chat.username}] {item[0]}: {server_message}\n")
     
     for string in [_string[x:x+4096] for x in range (0, len(_string), 4096)]:
-        await message.answer(string)
-    
-
-async def getlogs(arguments, message: types.Message):
-    ip, login = arguments[0], arguments[1]
-    _string = ""
-
-    if db.ip_exist(ip):
-        self_req = request(config.ACCESS_TOKEN, f"http://{ip}:5000/bots/getlogs", json={'login': login})
-
-        server_message = self_req.error and "Server offline or down" or f"[{message.chat.username}] getlogs; response:{self_req.response}"
-
-        _string += log_info(f"{ip}: {server_message}\n")
-
-        await bot.send_document(message.chat.id, (f"{login}.log", self_req.response.text))
-
-        for string in [_string[x:x+4096] for x in range(0, len(_string), 4096)]:
-            await message.answer(string)
-
-    await message.answer(f"Такой IP отсутствует, начните сначала: /getlogs")
-        
-async def stopallbot(arguments, message: types.Message):
-    ips = db.get_ips()
-    _string = ""
-    for it, item in enumerate(ips, 1):
-        self_req = request(config.ACCESS_TOKEN, f"http://{item[0]}:5000/bots/stopallbot")
-
-        server_message = self_req.error and "Server offline or down" or f"[{message.chat.username}] stopallbot; response:{self_req.response}"
-        _string += log_info(f"{it}. {item[0]}: {server_message}\n")
-        
-    for string in [_string[x:x+4096] for x in range(0, len(_string), 4096)]:
         await message.answer(string)
     
 async def update(arguments, message: types.Message):
@@ -156,11 +143,26 @@ async def update(arguments, message: types.Message):
     for it, item in enumerate(ips, 1):
         self_req = request(config.ACCESS_TOKEN, f"http://{item[0]}:5000/bots/update/{update_n}")
 
-        server_message = self_req.error and "Server offline or down" or f"[{message.chat.username}] update {update_n}; response:{self_req.response}"
-        _string += log_info(f"{it}. {item[0]}: {server_message}\n")
+        server_message = "Server offline or down" if self_req.isoffline else f"update {update_n}; response: {self_req.response.json()['status']}"
+        _string += log_info(f"{it}. [{message.chat.username}] {item[0]}: {server_message}\n")
     
     for string in [_string[x:x+4096] for x in range(0, len(_string), 4096)]:
         await message.answer(string)
+
+async def getlogs(arguments, message: types.Message):
+    ip, login = arguments[0], arguments[1]
+    if db.ip_exist(ip):
+        self_req = request(config.ACCESS_TOKEN, f"http://{ip}:5000/bots/getlogs", json={'login': login})
+
+        server_message = "Server offline or down" if self_req.isoffline else (self_req.error['msg'] if self_req.error else f"getlogs; response: {self_req.response.ok}")
+        log_info(f"[{message.chat.username}] {ip}: {server_message}\n")
+
+        if self_req.error:
+            await message.answer(f"Логи этого бота отсутствуют")
+        else:
+            await bot.send_document(message.chat.id, (f"{login}.log", self_req.response.text))
+    else:
+        await message.answer(f"Такой IP отсутствует, начните сначала: /getlogs")
 
 async def test_server(arguments, message: types.Message):
     ips = db.get_ips()
@@ -169,7 +171,7 @@ async def test_server(arguments, message: types.Message):
     for it, item in enumerate(ips, 1):
         self_req = request(config.ACCESS_TOKEN, f"http://{item[0]}:5000/bots/isonline")
 
-        server_message = self_req.error and "Server offline" or "Server online"
+        server_message = "SERVER OFFLINE" if self_req.isoffline else "online"
         _string += f"{it}. {item[0]}: {server_message}\n"
     
     for string in [_string[x:x+4096] for x in range(0, len(_string), 4096)]:

@@ -2,6 +2,7 @@ import requests
 
 class request:
     error = None
+    isoffline = None
     def __init__(self, key, url, files=None, json=None):
         if files == None:
             files = {}
@@ -17,6 +18,9 @@ class request:
                     json=json,
                     allow_redirects=False
                 )
-            self.response = response
-        except Exception as e:
-            self.error = f"Exception: {e}"
+            if response.ok:
+                self.response = response
+            else:
+                self.error = response.json()
+        except:
+            self.isoffline = True
