@@ -96,7 +96,7 @@ async def restartconsole(arguments, message: types.Message):
         if arguments[0] == "all" or arguments[0] == item[0]:
             self_req = request(config.ACCESS_TOKEN, f"http://{item[0]}:5000/bots/restartconsole")
             
-            server_message = self_req.error and "Server offline or down" or f"[{message.chat.username}] restartconsole; response:{self_req.response}"
+            server_message = self_req.error and f"[{message.chat.username}] restartconsole" or f"[{message.chat.username}] restartconsole; response:{self_req.response.json()}"
 
             _string += log_info(f"{i}. {item[0]}: {server_message}\n")
 
