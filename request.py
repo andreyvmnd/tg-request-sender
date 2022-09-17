@@ -2,7 +2,12 @@ import requests
 
 class request:
     error = None
-    def __init__(self, key, url, files={}, json={}):
+    def __init__(self, key, url, files=None, json=None):
+        if files == None:
+            files = {}
+        if json == None:
+            json = {}
+            
         try:
             c = requests.Session()
             response = c.post(

@@ -1,5 +1,6 @@
 from aiogram import Bot, Dispatcher, types, executor
-
+import __main__
+ 
 class Commands:
     funcs = {}
     chats = {}
@@ -54,7 +55,12 @@ class Commands:
                 return
 
             self.set_function(self.chats[chat_id], message.text)
-            await message.answer(cmd_info[2][0])
+            
+            await message.answer(cmd_info[2][0].replace("$listServer", ""), 'HTML')
+            if "$listServer" in cmd_info[2][0]:
+                ips, ipl = __main__.get_ip_list_forall()
+                for obj in ipl:
+                    await message.answer(f"{ipl[obj]}", 'HTML')
             return
 
         # Какую функцию сейчас использует пользователь
