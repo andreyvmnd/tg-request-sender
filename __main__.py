@@ -77,19 +77,22 @@ async def sendfile(arguments, message: types.Message):
     await arguments[0].download(destination_file=f"docs/{arguments[0].file_name}")
 
     ips = db.get_ips()
+    quickReq = quickrequest()
     _string = ""
     for i, item in enumerate(ips, 1):
+        quickReq.addReq(f"http://{item[0]}:5000/bots/sendfile", config.ACCESS_TOKEN, files={'file': (arguments[0].file_name, open(f"docs/{arguments[0].file_name}", 'rb'))})
 
-        self_req = request(config.ACCESS_TOKEN, f"http://{item[0]}:5000/bots/sendfile", files={'file': (arguments[0].file_name, open(f"docs/{arguments[0].file_name}", 'rb'))})
-                
-        server_message = "Server offline or down" if self_req.isoffline else (self_req.error['msg'] if self_req.error else f"sendfile; file: {arguments[0].file_name} response: {self_req.response.json()['msg']}")
+    req_list = quickReq.start()
 
-        _string += log_info(f"{i}. [{message.chat.username}] {item[0]}: {server_message}\n")
+    for i, item in enumerate(quickReq.list, 1):   
+        server_message = "Server offline or down" if req_list[i-1] == None else f"sendfile; file: {arguments[0].file_name} response: {req_list[i-1].json()['msg']}"
+
+        _string += log_info(f"{i}. [{message.chat.username}] {item[4]}: {server_message}\n")
     
     for string in [_string[x:x+4096] for x in range (0, len(_string), 4096)]:
         await message.answer(string)
 
-async def restartconsole(arguments, message: types.Message):
+async def restartconsole(arguments, message: types.Message): #TODO UPDATE THIS FUNCTION
     ips, ipl = get_ip_list_forall()
     _string = ""
     for i, item in enumerate(ips, 1):
@@ -111,26 +114,32 @@ async def restartconsole(arguments, message: types.Message):
     
 async def stopallbot(arguments, message: types.Message):
     ips = db.get_ips()
+    quickReq = quickrequest()
     _string = ""
-    for it, item in enumerate(ips, 1):
-        self_req = request(config.ACCESS_TOKEN, f"http://{item[0]}:5000/bots/stopallbot")
+    for i, item in enumerate(ips, 1):
+        if arguments[0] == "all" or arguments[0] == item[0]:
+            quickReq.addReq(f"http://{item[0]}:5000/bots/stopallbot", config.ACCESS_TOKEN)
+    req_list = quickReq.start()
 
-        server_message = "Server offline or down" if self_req.isoffline else f"stopallbot; response: {self_req.response.json()['msg']}"
-        _string += log_info(f"{it}. [{message.chat.username}] {item[0]}: {server_message}\n")
+    for i, item in enumerate(quickReq.list, 1):
+        server_message = "Server offline or down" if not req_list[i-1] else f"stopallbot; response: {req_list[i-1].json()['msg']}"
+        _string += log_info(f"{i}. [{message.chat.username}] {item[4]}: {server_message}\n")
         
     for string in [_string[x:x+4096] for x in range(0, len(_string), 4096)]:
         await message.answer(string)
 
 async def killallrbx(arguments, message: types.Message):
     ips, ipl = get_ip_list_forall()
+    quickReq = quickrequest()
     _string = ""
     for i, item in enumerate(ips, 1):
         if arguments[0] == "all" or arguments[0] == item[0]:
-            self_req = request(config.ACCESS_TOKEN, f"http://{item[0]}:5000/bots/killallrbx")
+            quickReq.addReq(f"http://{item[0]}:5000/bots/killallrbx", config.ACCESS_TOKEN)
+    req_list = quickReq.start()
 
-            server_message = "Server offline or down" if self_req.isoffline else f"killallrbx; response: {self_req.response.json()['msg']}"
-
-            _string += log_info(f"{i}. [{message.chat.username}] {item[0]}: {server_message}\n")
+    for i, item in enumerate(quickReq.list, 1):
+        server_message = "Server offline or down" if not req_list[i-1] else f"killallrbx; response: {req_list[i-1].json()['msg']}"
+        _string += log_info(f"{i}. [{message.chat.username}] {item[4]}: {server_message}\n")
     
     for string in [_string[x:x+4096] for x in range (0, len(_string), 4096)]:
         await message.answer(string)
@@ -138,13 +147,16 @@ async def killallrbx(arguments, message: types.Message):
 async def update(arguments, message: types.Message):
     update_n = message.text == "/updateroblox" and "roblox" or "synapse"
     ips = db.get_ips()
+    quickReq = quickrequest()
     _string = ""
 
-    for it, item in enumerate(ips, 1):
-        self_req = request(config.ACCESS_TOKEN, f"http://{item[0]}:5000/bots/update/{update_n}")
+    for i, item in enumerate(ips, 1):
+        quickReq.addReq(f"http://{item[0]}:5000/bots/update/{update_n}", config.ACCESS_TOKEN)
+    req_list = quickReq.start(100)
 
-        server_message = "Server offline or down" if self_req.isoffline else f"update {update_n}; response: {self_req.response.json()['status']}"
-        _string += log_info(f"{it}. [{message.chat.username}] {item[0]}: {server_message}\n")
+    for i, item in enumerate(quickReq.list, 1):
+        server_message = "Server offline or down" if not req_list[i-1] else f"update {update_n}; response: {req_list[i-1].json()['status']}"
+        _string += log_info(f"{i}. [{message.chat.username}] {item[4]}: {server_message}\n")
     
     for string in [_string[x:x+4096] for x in range(0, len(_string), 4096)]:
         await message.answer(string)
@@ -166,14 +178,17 @@ async def getlogs(arguments, message: types.Message):
 
 async def test_server(arguments, message: types.Message):
     ips = db.get_ips()
+    quickReq = quickrequest()
     _string = ""
 
-    for it, item in enumerate(ips, 1):
-        self_req = request(config.ACCESS_TOKEN, f"http://{item[0]}:5000/bots/isonline")
+    for i, item in enumerate(ips, 1):
+        quickReq.addReq(f"http://{item[0]}:5000/bots/isonline", config.ACCESS_TOKEN)
+    req_list = quickReq.start()
 
-        server_message = "SERVER OFFLINE" if self_req.isoffline else "online"
-        _string += f"{it}. {item[0]}: {server_message}\n"
-    
+    for i, item in enumerate(quickReq.list, 1):
+        server_message = "SERVER OFFLINE" if not req_list[i-1] else f"online"
+        _string += f"{i}. {item[4]}: {server_message}\n"
+
     for string in [_string[x:x+4096] for x in range(0, len(_string), 4096)]:
         await message.answer(string)
 
@@ -188,7 +203,7 @@ def main():
 
     cmds.add_command("/sendfile", 1, ("Отправьте файл скрипта",), sendfile, "Отправить файл")
     cmds.add_command("/restartconsole", 1, ("Выберите IP сервера консоль которого нужно рестартить:\n\n<code>all</code> (Если все)$listServer",), restartconsole, "Перезапустить консоль веб сервера")
-    cmds.add_command("/stopallbot", 0, None, stopallbot, "Остановить всех ботов")
+    cmds.add_command("/stopallbot", 1, ("Выберите IP сервера на котором нужно остановить всех ботов:\n\n<code>all</code> (Если все)$listServer",), stopallbot, "Остановить всех ботов")
     cmds.add_command("/killallrbx", 1, ("Выберите IP сервера на котором нужно остановить процессы роблокс:\n\n<code>all</code> (Если все)$listServer",), killallrbx, "Выключить все процесы роблокс")
     cmds.add_command("/listip", 0, None, get_ip_list, "Список веб серверов")
     cmds.add_command("/addip", 1, ("Введите IP который нужно добавить",), add_ip_list, "Добавить IP веб сервера")
