@@ -58,7 +58,7 @@ class Commands:
             
             await message.answer(cmd_info[2][0].replace("$listServer", ""), 'HTML')
             if "$listServer" in cmd_info[2][0]:
-                ips, ipl = __main__.get_ip_list_forall()
+                ipl = __main__.get_ip_list_forall()
                 for obj in ipl:
                     await message.answer(f"{ipl[obj]}", 'HTML')
             return

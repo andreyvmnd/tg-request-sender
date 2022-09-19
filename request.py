@@ -1,5 +1,8 @@
 import grequests, requests
 
+def stringtolist(string):
+    return [string[x:x+4096] for x in range(0, len(string), 4096)]
+
 class quickrequest:
     list = []
     list_map = []
@@ -26,33 +29,8 @@ class quickrequest:
         req_list = self.list_map
 
         for i, item in enumerate(self.list, 1):
-            server_message = "SERVER OFFLINE" if not req_list[i-1] else \
+            server_message = "SERVER OFFLINE" if req_list[i-1] == None else \
                 req_mess_ex.format(response_message = req_list[i-1].json()['msg'])
             _string += mess_ex.format(i = i, serverIP = item[4], server_message=server_message)
 
-        return [_string[x:x+4096] for x in range(0, len(_string), 4096)]
-
-class request:
-    error = None
-    isoffline = None
-    def __init__(self, key, url, files=None, json=None):
-        if files == None:
-            files = {}
-        if json == None:
-            json = {}
-            
-        try:
-            c = requests.Session()
-            response = c.post(
-                    headers={"Authorization": f'Bearer {key}'},
-                    url=url,
-                    files=files,
-                    json=json,
-                    allow_redirects=False
-                )
-            if response.ok:
-                self.response = response
-            else:
-                self.error = response.json()
-        except:
-            self.isoffline = True
+        return stringtolist(_string)
