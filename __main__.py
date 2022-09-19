@@ -1,11 +1,11 @@
-import config
 import os
-import db
 import logging
 
 from aiogram import Bot, Dispatcher, types, executor
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
+import config
+import db
 from commands import Commands
 from request import *
 
@@ -77,11 +77,9 @@ async def sendfile(arguments, message: types.Message):
     await arguments[0].download(destination_file=f"docs/{arguments[0].file_name}")
 
     ips = db.get_ips()
-    quickReq = quickrequest()
     _string = ""
-    for i, item in enumerate(ips, 1):
-        quickReq.addReq(f"http://{item[0]}:5000/bots/sendfile", config.ACCESS_TOKEN, files={'file': (arguments[0].file_name, open(f"docs/{arguments[0].file_name}", 'rb'))})
 
+    quickReq = quickrequest(ips, f"http://$ip:5000/bots/sendfile", config.ACCESS_TOKEN, files={'file': (arguments[0].file_name, open(f"docs/{arguments[0].file_name}", 'rb'))})
     req_list = quickReq.start()
 
     for i, item in enumerate(quickReq.list, 1):   
@@ -114,11 +112,9 @@ async def restartconsole(arguments, message: types.Message): #TODO UPDATE THIS F
     
 async def stopallbot(arguments, message: types.Message):
     ips = db.get_ips()
-    quickReq = quickrequest()
     _string = ""
-    for i, item in enumerate(ips, 1):
-        if arguments[0] == "all" or arguments[0] == item[0]:
-            quickReq.addReq(f"http://{item[0]}:5000/bots/stopallbot", config.ACCESS_TOKEN)
+
+    quickReq = quickrequest(ips if arguments[0] == "all" else ((item[0],)), f"http://$ip:5000/bots/stopallbot", config.ACCESS_TOKEN)
     req_list = quickReq.start()
 
     for i, item in enumerate(quickReq.list, 1):
@@ -130,11 +126,9 @@ async def stopallbot(arguments, message: types.Message):
 
 async def killallrbx(arguments, message: types.Message):
     ips, ipl = get_ip_list_forall()
-    quickReq = quickrequest()
     _string = ""
-    for i, item in enumerate(ips, 1):
-        if arguments[0] == "all" or arguments[0] == item[0]:
-            quickReq.addReq(f"http://{item[0]}:5000/bots/killallrbx", config.ACCESS_TOKEN)
+
+    quickReq = quickrequest(ips if arguments[0] == "all" else ((item[0],)), f"http://$ip:5000/bots/killallrbx", config.ACCESS_TOKEN)
     req_list = quickReq.start()
 
     for i, item in enumerate(quickReq.list, 1):
@@ -147,12 +141,10 @@ async def killallrbx(arguments, message: types.Message):
 async def update(arguments, message: types.Message):
     update_n = message.text == "/updateroblox" and "roblox" or "synapse"
     ips = db.get_ips()
-    quickReq = quickrequest()
     _string = ""
 
-    for i, item in enumerate(ips, 1):
-        quickReq.addReq(f"http://{item[0]}:5000/bots/update/{update_n}", config.ACCESS_TOKEN)
-    req_list = quickReq.start(100)
+    quickReq = quickrequest(ips, f"http://$ip:5000/bots/update/{update_n}", config.ACCESS_TOKEN)
+    quickReq.start(100)
 
     for i, item in enumerate(quickReq.list, 1):
         server_message = "Server offline or down" if not req_list[i-1] else f"update {update_n}; response: {req_list[i-1].json()['status']}"
@@ -163,33 +155,32 @@ async def update(arguments, message: types.Message):
 
 async def getlogs(arguments, message: types.Message):
     ip, login = arguments[0], arguments[1]
+
     if db.ip_exist(ip):
-        self_req = request(config.ACCESS_TOKEN, f"http://{ip}:5000/bots/getlogs", json={'login': login})
+        quickReq = quickrequest(((ip,)), "http://$ip:5000/bots/getlogs", config.ACCESS_TOKEN, json={'login': login})
+        quickReq.start()
 
-        server_message = "Server offline or down" if self_req.isoffline else (self_req.error['msg'] if self_req.error else f"getlogs; response: {self_req.response.ok}")
-        log_info(f"[{message.chat.username}] {ip}: {server_message}\n")
+        _string = quickReq.handler_requests("{i}. ["+message.chat.username+"] {serverIP}: {server_message}\n", "getlogs; message: {response_message}")
+        for string in _string:
+            log_info(string)
+            await message.answer(string)
+        
+        for item in quickReq.list_map:
+            if item:
+                await bot.send_document(message.chat.id, (f"{login}.log", item.text))
+            else:
+                message.answer(f"Логи этого бота отсутствуют")
 
-        if self_req.error:
-            await message.answer(f"Логи этого бота отсутствуют")
-        else:
-            await bot.send_document(message.chat.id, (f"{login}.log", self_req.response.text))
     else:
         await message.answer(f"Такой IP отсутствует, начните сначала: /getlogs")
 
 async def test_server(arguments, message: types.Message):
     ips = db.get_ips()
-    quickReq = quickrequest()
-    _string = ""
 
-    for i, item in enumerate(ips, 1):
-        quickReq.addReq(f"http://{item[0]}:5000/bots/isonline", config.ACCESS_TOKEN)
-    req_list = quickReq.start()
+    quickReq = quickrequest(ips, "http://$ip:5000/bots/isonline", config.ACCESS_TOKEN)
+    quickReq.start()
 
-    for i, item in enumerate(quickReq.list, 1):
-        server_message = "SERVER OFFLINE" if not req_list[i-1] else f"online"
-        _string += f"{i}. {item[4]}: {server_message}\n"
-
-    for string in [_string[x:x+4096] for x in range(0, len(_string), 4096)]:
+    for string in quickReq.handler_requests("{i}. {serverIP}: {server_message}\n", "online"):
         await message.answer(string)
 
 def main():
@@ -197,9 +188,7 @@ def main():
         if not os.path.exists(dir):
             os.makedirs(dir)
 
-    logging.basicConfig(
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO, filename='logs/script.log'
-    )
+    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO, filename='logs/script.log')
 
     cmds.add_command("/sendfile", 1, ("Отправьте файл скрипта",), sendfile, "Отправить файл")
     cmds.add_command("/restartconsole", 1, ("Выберите IP сервера консоль которого нужно рестартить:\n\n<code>all</code> (Если все)$listServer",), restartconsole, "Перезапустить консоль веб сервера")
