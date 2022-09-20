@@ -29,8 +29,13 @@ class quickrequest:
         req_list = self.list_map
 
         for i, item in enumerate(self.list, 1):
-            server_message = "SERVER OFFLINE" if req_list[i-1] == None else \
-                req_mess_ex.format(response_message = req_list[i-1].json()['msg'])
+            server_message = ""
+            if req_list[i-1] == None:
+                server_message = "SERVER OFFLINE"
+            elif req_list[i-1].text and 'msg' in req_list[i-1].text:
+                server_message = req_mess_ex.format(response_message = req_list[i-1].json()['msg'])
+            else:
+                server_message = req_mess_ex.format(response_message = req_list[i-1].ok)
             _string += mess_ex.format(i = i, serverIP = item[4], server_message=server_message)
 
         return stringtolist(_string)

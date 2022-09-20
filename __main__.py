@@ -59,7 +59,7 @@ def get_ip_list_forall():
     return ipl
 
 async def get_ip_list(arguments, message: types.Message):
-    ips, ipl = get_ip_list_forall()
+    ipl = get_ip_list_forall()
     for obj in ipl:
         await message.answer(f"Список IP (копируется нажатием):\n\n{ipl[obj]}" if obj == 0 else f"{ipl[obj]}", 'HTML')
 
@@ -149,7 +149,7 @@ async def getlogs(arguments, message: types.Message):
     ip, login = arguments[0], arguments[1]
 
     if db.ip_exist(ip):
-        quickReq = quickrequest(((ip,)), "http://$ip:5000/bots/getlogs", config.ACCESS_TOKEN, json={'login': login})
+        quickReq = quickrequest([(ip,)], "http://$ip:5000/bots/getlogs", config.ACCESS_TOKEN, json={'login': login})
         quickReq.start()
 
         _string = quickReq.handler_requests("{i}. ["+message.chat.username+"] {serverIP}: {server_message}\n", "getlogs; message: {response_message}")
