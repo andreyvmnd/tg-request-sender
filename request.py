@@ -16,7 +16,7 @@ class quickrequest:
             grequests.post(
                 url=u[0], 
                 headers=u[1], 
-                files={'file': open(f"docs/{u[2]}", 'rb')}, 
+                files={'file': open(f"docs/{u[2]}", 'rb')} if u[2] else {}, 
                 json=u[3], 
                 allow_redirects=False,
                 timeout=timeout
