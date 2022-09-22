@@ -59,7 +59,7 @@ def get_ip_list_forall():
     return ipl
 
 async def get_ip_list(arguments, message: types.Message):
-    ipl = get_ip_list_forall()
+    ips, ipl = get_ip_list_forall()
     for obj in ipl:
         await message.answer(f"Список IP (копируется нажатием):\n\n{ipl[obj]}" if obj == 0 else f"{ipl[obj]}", 'HTML')
 
@@ -77,7 +77,7 @@ async def sendfile(arguments, message: types.Message):
     await arguments[0].download(destination_file=f"docs/{arguments[0].file_name}")
     ips = db.get_ips()
 
-    quickReq = quickrequest(ips, f"http://$ip:5000/bots/sendfile", config.ACCESS_TOKEN, files={'file': (arguments[0].file_name, open(f"docs/{arguments[0].file_name}", 'rb'))})
+    quickReq = quickrequest(ips, f"http://$ip:5000/bots/sendfile", config.ACCESS_TOKEN, files=arguments[0].file_name)
     quickReq.start()
 
     _string = quickReq.handler_requests("{i}. ["+message.chat.username+"] {serverIP}: {server_message}\n", "sendfile; file: "+arguments[0].file_name+" message: {response_message}")
@@ -149,7 +149,7 @@ async def getlogs(arguments, message: types.Message):
     ip, login = arguments[0], arguments[1]
 
     if db.ip_exist(ip):
-        quickReq = quickrequest([(ip,)], "http://$ip:5000/bots/getlogs", config.ACCESS_TOKEN, json={'login': login})
+        quickReq = quickrequest(((ip,)), "http://$ip:5000/bots/getlogs", config.ACCESS_TOKEN, json={'login': login})
         quickReq.start()
 
         _string = quickReq.handler_requests("{i}. ["+message.chat.username+"] {serverIP}: {server_message}\n", "getlogs; message: {response_message}")
